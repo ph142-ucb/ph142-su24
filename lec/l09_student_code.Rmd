@@ -1,0 +1,343 @@
+---
+title: "L09:  Introduction to Probability"
+---
+
+```{r load-libraries, message=F, warning=FALSE, echo=F}
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+library(readxl)
+library(ggrepel)
+library(gridExtra)
+library(cowplot)
+```
+
+### From B&M: How common is the common cold?
+
+- Here are the dimensions, a data frame for the **whole population**, and the mean 
+of the variable `had_cold_yesterday`:
+
+```{r create-cold-data, echo=F}
+#students: you don't need to understand this code chunk yet. 
+
+population_size <- 100000
+prob_cold <- 0.112
+id <- 1:population_size
+set.seed(1234)
+# Generate n random binomial samples (coin flips) where 
+# probability of cold (heads) is prob_cold
+had_cold_yesterday <- rbinom(n = population_size, size = 1, prob = prob_cold) 
+#each person has an 11.2% chance of having the common cold yesterday
+cold_data <- data.frame(id, had_cold_yesterday)
+```
+
+```{r}
+dim(cold_data)
+cold_data %>% summarize(population_mean = mean(had_cold_yesterday))
+```
+
+- Let's take samples of size 5, 100, and so on using `dplyr`'s `sample_n`
+function:
+
+```{r the-smallest-samples}
+sample_5 <- dplyr::sample_n(tbl = cold_data, size = 5)
+sample_100 <- dplyr::sample_n(tbl = cold_data, size = 100)
+sample_1000 <- dplyr::sample_n(tbl = cold_data, size = 1000)
+sample_10000 <- dplyr::sample_n(tbl = cold_data, size = 10000)
+sample_100000 <- dplyr::sample_n(tbl = cold_data, size = 100000)
+```
+
+### Now estimate the proportion of those with a cold in the random samples
+
+```{r results-from-the-smallest-samples, echo=FALSE}
+sample_5 %>% summarize(sample_mean_n5 = mean(had_cold_yesterday))
+sample_100 %>% summarize(sample_mean_n100 = mean(had_cold_yesterday))
+sample_1000 %>% summarize(sample_mean_n1k = mean(had_cold_yesterday))
+sample_10000 %>% summarize(sample_mean_n10k = mean(had_cold_yesterday))
+sample_100000 %>% summarize(sample_mean_n100k = mean(had_cold_yesterday))
+```
+
+### Look at the sample's estimated proportion as a function of sample size
+
+* To help us decide I first sampled one person and took the mean of that sample.
+
+* Then I added another person and took the mean of that sample of size 2 (n=2).
+... and so on, until I had 5000 people. 
+
+* The plot shows the estimated proportion vs. the sample size.
+
+```{r three-growing-samples-of-5000, echo=F, eval=F}
+# students, you don't need to understand this code chunk
+
+# inspirational TODO for CR/MKD (for future reference, not for right now): make this into a 
+# shiny app that updates a growing plot after continuing to add one more person 
+# into the sample to show how the estimate updated each time.
+
+cold_data_copy <- cold_data
+cold_data_copy$in_sample1 <- 0
+cold_data_copy$in_sample2 <- 0
+cold_data_copy$in_sample3 <- 0
+grow_data1 <- grow_data2 <- grow_data3 <- NULL
+
+for(i in 1:5000){
+  sample_1 <- cold_data_copy %>% 
+    filter(in_sample1 == 0) %>% 
+    sample_n(1)
+  cold_data_copy$in_sample1[cold_data_copy$id == sample_1$id] <- 1
+  new <- cold_data_copy %>% filter(in_sample1 == 1) %>% 
+    summarize(mean = mean(had_cold_yesterday),
+              sample_size = n())
+  grow_data1 <- rbind(grow_data1, new)
+  
+  sample_2 <- cold_data_copy %>% 
+    filter(in_sample2 == 0) %>% 
+    sample_n(1)
+  cold_data_copy$in_sample2[cold_data_copy$id == sample_2$id] <- 1
+  new <- cold_data_copy %>% 
+    filter(in_sample2 == 1) %>% 
+    summarize(mean = mean(had_cold_yesterday),
+              sample_size = n())
+  grow_data2 <- rbind(grow_data2, new)
+  
+  sample_3 <- cold_data_copy %>% 
+    filter(in_sample3 == 0) %>% 
+    sample_n(1)
+  cold_data_copy$in_sample3[cold_data_copy$id == sample_3$id] <- 1
+  new <- cold_data_copy %>% 
+    filter(in_sample3 == 1) %>% 
+    summarize(mean = mean(had_cold_yesterday),
+              sample_size = n())
+  grow_data3 <- rbind(grow_data3, new)
+}
+
+grow_data1 <- grow_data1 %>% mutate(sample = "First sample")
+grow_data2 <- grow_data2 %>% mutate(sample = "Second sample")
+grow_data3 <- grow_data3 %>% mutate(sample = "Third sample")
+
+grow_data <- rbind(grow_data1, grow_data2, grow_data3)
+## Saving image because this part takes a long time
+save.image("../Data/chp9.rdata")
+```
+
+### Estimated proportion vs. sample size for n = 250
+
+```{r first-sample-250, echo=F,fig.align='center', message=F, warning=F, out.width = "80%"}
+# students, don't worry about this code
+
+load("chp9.rdata")
+segment1 <- data.frame(x1 = 1, x2 = 1000, y1 = prob_cold, y2 = prob_cold)
+segment2 <- data.frame(x1 = 1, x2 = 1000, y1 = prob_cold + 0.05, y2 = prob_cold + 0.05)
+segment3 <- data.frame(x1 = 1, x2 = 1000, y1 = prob_cold - 0.05, y2 = prob_cold - 0.05)
+segment4 <- data.frame(x1 = 1, x2 = 1000, y1 = prob_cold + 0.02, y2 = prob_cold + 0.02)
+segment5 <- data.frame(x1 = 1, x2 = 1000, y1 = prob_cold - 0.02, y2 = prob_cold - 0.02)
+
+p1 <- ggplot(grow_data %>% dplyr::filter(sample_size < 250, sample == "First sample"), 
+             aes(x = sample_size, y = mean)) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment1) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment2, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment3, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment4, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment5, lty = 3) + 
+  geom_text(aes(y = prob_cold + 0.005, x = 800), label = "pop'n proportion", check_overlap = T) +
+  geom_text(aes(y = prob_cold + 0.05, x = 900), label = "+ 5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.05, x = 900), label = "- 5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold + 0.02, x = 900), label = "+ 2", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.02, x = 900), label = "- 2", check_overlap = T) + 
+  geom_line(aes(col = factor(sample))) + 
+  labs(y = "Estimated proportion", x = "Sample size", 
+       title = "n=250, one sample") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(breaks = seq(0, 1000, 200)) +
+  scale_y_continuous(labels = scales::percent, breaks = seq(0, 0.18, 0.02), 
+                     limits = c(0, 0.18)) + 
+  theme(panel.grid.minor = element_blank(), legend.position = "top", legend.title = element_blank())
+
+# Now we add the line for the second sample of 250:
+p2 <- ggplot(grow_data %>% dplyr::filter(sample_size < 250, sample != "Third sample"), 
+             aes(x = sample_size, y = mean)) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment1) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment2, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment3, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment4, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment5, lty = 3) + 
+  geom_text(aes(y = prob_cold+0.005, x = 800), label = "pop'n proportion", check_overlap = T) +
+  geom_text(aes(y = prob_cold + 0.05, x = 900), label = "+ 5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.05, x = 900), label = "- 5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold + 0.02, x = 900), label = "+ 2", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.02, x = 900), label = "- 2", check_overlap = T) + 
+  geom_line(aes(col = factor(sample))) + 
+  labs(y = "Estimated proportion", x = "Sample size",
+       title = "n=250, two samples") +
+  theme_minimal(base_size = 15) +
+  scale_x_continuous(breaks = seq(0, 1000, 200)) +
+  scale_y_continuous(labels = scales::percent, breaks = seq(0, 0.18, 0.02), 
+                     limits = c(0, 0.18)) +
+  theme(panel.grid.minor = element_blank(), legend.position = "top", legend.title = element_blank()) 
+  
+p1 + p2 + plot_layout()  
+```
+
+### Estimated proportion vs. sample size for n = 500 
+
+- Increase the sample size how the estimate becomes closer to the true value
+- Add in a third sample to compare how different samples perform in the short 
+vs. the long run 
+
+```{r sample-250-500, echo=F, fig.align='center', message=F, warning=F, out.width="80%"}
+p3 <- ggplot(grow_data %>% dplyr::filter(sample_size < 250), aes(x = sample_size, y = mean)) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment1) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment2, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment3, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment4, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment5, lty = 3) + 
+    geom_text(aes(y = prob_cold+0.005, x = 800), label = "pop'n proportion", check_overlap = T) +
+  geom_text(aes(y = prob_cold + 0.05, x = 900), label = "+ 5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.05, x = 900), label = "- 5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold + 0.02, x = 900), label = "+ 2", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.02, x = 900), label = "- 2", check_overlap = T) + 
+  geom_line(aes(col = factor(sample))) + 
+  labs(y = "Estimated proportion", x = "Sample size", 
+       title = "n = 250, 3 samples") + 
+  scale_x_continuous(breaks = seq(0, 1000, 200)) +
+  scale_y_continuous(labels = scales::percent, breaks = seq(0, 0.80, 0.02)) +
+  theme_minimal(base_size = 15) +
+  theme(legend.position="none", panel.grid.minor = element_blank())
+
+p4 <- ggplot(grow_data %>% dplyr::filter(sample_size < 500), aes(x = sample_size, y = mean)) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment1) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment2, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment3, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment4, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment5, lty = 3) + 
+    geom_text(aes(y = prob_cold+0.005, x = 800), label = "pop'n proportion", check_overlap = T) +
+  geom_text(aes(y = prob_cold + 0.05, x = 900), label = "+ 5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.05, x = 900), label = "- 5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold + 0.02, x = 900), label = "+ 2", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.02, x = 900), label = "- 2", check_overlap = T) + 
+  geom_line(aes(col = factor(sample))) + 
+  labs(x = "Sample size", y = "Estimated proportion", 
+       title = "n = 500, 3 samples") + 
+  scale_x_continuous(breaks = seq(0, 1000, 200)) +
+  scale_y_continuous(labels = scales::percent, breaks = seq(0, 0.80, 0.02)) +
+  theme_minimal(base_size = 15) +
+  theme(legend.position="none", panel.grid.minor = element_blank())
+
+segment6 <- data.frame(x1 = 1, x2 = 5000, y1 = prob_cold, y2 = prob_cold)
+segment7 <- data.frame(x1 = 1, x2 = 5000, y1 = prob_cold + 0.05, y2 = prob_cold + 0.05)
+segment8 <- data.frame(x1 = 1, x2 = 5000, y1 = prob_cold - 0.05, y2 = prob_cold - 0.05)
+segment9 <- data.frame(x1 = 1, x2 = 5000, y1 = prob_cold + 0.02, y2 = prob_cold + 0.02)
+segment10 <- data.frame(x1 = 1, x2 = 5000, y1 = prob_cold - 0.02, y2 = prob_cold - 0.02)
+
+p3 + p4 + plot_layout()
+```
+
+### Estimated proportion vs. sample size for n = 5000
+
+```{r sample-5000, echo=F, fig.align='center', message=F, warning=F, out.width="80%"}
+p5 <- ggplot(grow_data %>% dplyr::filter(sample_size < 5000), aes(x = sample_size, y = mean)) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment6) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment7, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment8, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment9, lty = 3) + 
+  geom_segment(aes(y = y1, yend = y2, x = x1, xend = x2), data = segment10, lty = 3) + 
+  geom_text(aes(y = prob_cold+0.005, x = 5050), label = "pop'n proportion", check_overlap = T) +
+  geom_text(aes(y = prob_cold + 0.05, x = 4200), label = "+5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.05, x = 4200), label = "-5", check_overlap = T) + 
+  geom_text(aes(y = prob_cold + 0.02, x = 4200), label = "+2", check_overlap = T) + 
+  geom_text(aes(y = prob_cold - 0.02, x = 4200), label = "-2", check_overlap = T) + 
+  geom_line(aes(col = factor(sample))) + 
+  labs(y = "Estimated proportion", x = "Sample size", 
+       title = "n = 5000, 3 samples") + 
+  theme_minimal(base_size = 15) +
+  scale_x_continuous(breaks = seq(0, 5000, 500)) +
+  scale_y_continuous(labels = scales::percent, breaks = seq(0, 0.80, 0.02))  +  
+  theme(panel.grid.minor = element_blank(), legend.position = "top", legend.title = element_blank())
+
+p5
+```
+
+### Summary of the example on estimating the proportion with a cold
+
+- As the sample size increases, the estimated proportion becomes closer to the 
+true proportion
+- Random samples of the same size will provide different estimates of the true 
+proportion, but will be closer to each other (and the true value) if they are 
+"large enough"
+
+
+### Density curves using `geom_density()`
+
+- Recall the data on cesarean delivery rates across hospitals in the US. We can 
+use these data to also make a density plot (also called density curve):
+
+```{r cs-variation-plot-example, echo = F, warning=F, message=F, out.width="80%"}
+CS_dat <- read_xlsx("Ch02_Kozhimannil_Ex_Cesarean.xlsx", sheet = 1)
+
+CS_dat <- CS_dat %>% 
+  dplyr::select(Births, `Cesarean rate *100`) %>%
+  dplyr::rename(num_births = Births, cs_rate = `Cesarean rate *100`)
+
+CS_dat <- CS_dat %>% dplyr::mutate(cs_rate_binned = cut(cs_rate, 32))
+
+## Basic histogram from cesarean delivery. Each bin is 2 wide.
+basic.hist <- ggplot(CS_dat, aes(x=cs_rate)) + 
+  geom_histogram(binwidth = 2) +
+  ggtitle("Basic histogram") + 
+  theme_minimal(base_size = 15)
+
+# Draw with black outline, white fill
+better.hist <- ggplot(CS_dat, aes(x=cs_rate)) + 
+  geom_histogram(binwidth = 2, colour="black", fill="white") + 
+  ggtitle("Better histogram") + 
+  theme_minimal(base_size = 15)
+
+# Density curve (students: be able to make density plots like this)
+basic.density <- ggplot(CS_dat, aes(x=cs_rate)) + 
+  geom_density() + 
+  labs(title = "Basic density") + 
+  theme_minimal(base_size = 15)
+
+# Histogram overlaid with density curve
+# overlaying density plots onto histograms is a bit tricky,
+# so don't worry about learning this bit of code.
+density.hist <- ggplot(CS_dat, aes(x=cs_rate)) + 
+  geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
+                   binwidth=2,
+                   colour="black", fill="white") +
+  geom_density(alpha=.2, fill="#FF6666") +  # Overlay with transparent density plot
+  ggtitle("Histogram and density") + 
+  theme_minimal(base_size = 15)
+
+basic.hist + better.hist + basic.density + density.hist + plot_layout()
+
+# plotting formatting ideas from : http://www.cookbook-r.com/Graphs/Plotting_distributions_(ggplot2)/
+
+# this summary dataset shows the relationship between the proportion in each bin and the density
+# since density is an area, you need to take the proportion (height) and divide by the bin width
+# (here it is 2.02 based on how we chose our bins) to get the density.
+CS.summary <- CS_dat %>% 
+  group_by(cs_rate_binned) %>% 
+  summarize(n = n()) %>%
+  mutate(prop = round((n/sum(n))*100,2), 
+         density = (n/sum(n))/2.02) 
+```
+
+### Density curves
+
+- From this plot, we can see that the density curve approximates the shape of 
+the histogram very well. 
+- Remember because there are infinitely many cesarean delivery rates that could 
+be observed between 0 and 1 it is impossible to assign a finite probability to
+any specific number. 
+- If we did, we could do this infinitely and their summed probability would 
+surpass 100%. 
+- Instead, the density curve is used to determine the probability of an observed 
+event within a specific range.
+
+
+### R recap:
+The only new code in this lecture you need to remember is
+
+`geom_density()`
+
+Which is the function we use to generate a density plot within the ggplot package
