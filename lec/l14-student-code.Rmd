@@ -1,0 +1,250 @@
+---
+title: "L14:  Sampling Distributions and the Central Limit Theorum"
+---
+
+
+
+### CLT example
+
+Suppose you had a variable whose probability distribution function looked like 
+this. It is strongly skewed right.:
+
+```{r, out.width = "80%", echo=F, fig.align='center'}
+ggplot(data = data.frame(x = c(0, 5)), aes(x)) +
+  stat_function(fun = dexp, n = 101, args = list(rate = 1), col = "orange") +
+  theme_minimal(base_size = 15) +
+  labs(title = "Distribution of a random variable") + 
+  geom_vline(aes(xintercept = 1), lty = 2) + geom_text(x = 1.5, y = 0.75, label = "population mean", check_overlap = T)
+```
+
+### CLT example
+
+1) Take a sample from the distribution of size 2. This is very small! 
+2) For your sample calculate the mean.
+3) Repeat steps 1 and 2 1,000 times. 
+4) Plot the sampling distribution of the mean. That is, plot the distribution of 
+the 1000 means using a histogram.
+
+Compare the population mean (black dashed line) with the mean of the sampled means (red dotted line)
+
+### CLT example
+
+```{r, fig.align='center', out.width="80%", echo=F, warning=F}
+pop_data <- rexp(n = 100000, rate = 1)
+pop_data <- as.data.frame(pop_data)
+names(pop_data)[1] <- "var_1"
+
+calc_sample_mean <- function(df) {
+  df %>% 
+    summarize(sample_mean = mean(var_1))
+}
+
+many.sample.stats.n2 <- replicate(1000, sample_n(pop_data, 2), simplify = F) %>%
+  lapply(., calc_sample_mean) %>%
+  bind_rows() %>%
+  mutate(sample.id = 1:n())
+
+ggplot(many.sample.stats.n2, aes(x = sample_mean)) + 
+  geom_histogram(binwidth = 0.25, col = "white") + 
+  ggtitle("Histogram of sample means where n=2") +
+  geom_vline(aes(xintercept = 1), lty = 2) + 
+  geom_vline(aes(xintercept = many.sample.stats.n2 %>% summarise(mean(sample_mean)) %>% pull), lty = 3, col = "red") +
+  theme_minimal(base_size = 15) +
+  scale_x_continuous(limits = c(0, 6))
+```
+
+### CLT example
+
+1) Take a sample from the distribution of size 10. This is still small! 
+2) For your sample calculate the mean.
+3) Repeat steps 1 and 2 1,000 times. 
+4) Plot the sampling distribution of the mean. That is, plot the distribution of 
+the 1000 means using a histogram.
+
+Compare the population mean (black dashed line) with the mean of the sampled means (red dotted line)
+
+### CLT example
+
+```{r, fig.align='center', out.width="80%", echo=F, warning=F}
+many.sample.stats.n10 <- replicate(1000, sample_n(pop_data, 10), simplify = F) %>%
+  lapply(., calc_sample_mean) %>%
+  bind_rows() %>%
+  mutate(sample.id = 1:n())
+
+ggplot(many.sample.stats.n10, aes(x = sample_mean)) + 
+  geom_histogram(binwidth = 0.1, col = "white") + 
+  ggtitle("Histogram of sample means where n=10") +
+  geom_vline(aes(xintercept = 1), lty = 2) + 
+  geom_vline(aes(xintercept = many.sample.stats.n10 %>% summarise(mean(sample_mean)) %>% pull), lty = 3, col = "red") +
+  theme_minimal(base_size = 15) +
+  scale_x_continuous(limits = c(0, 6))
+```
+
+### CLT example
+
+1) Take a sample from the distribution of size 30.
+2) For your sample calculate the mean.
+3) Repeat steps 1 and 2 1,000 times. 
+4) Plot the sampling distribution of the mean. That is, plot the distribution of 
+the 1000 means using a histogram.
+
+Compare the population mean (black dashed line) with the mean of the sampled means (red dotted line)
+
+### CLT example
+
+```{r, fig.align='center', out.width="80%", echo=F, warning=F}
+many.sample.stats.n30 <- replicate(1000, sample_n(pop_data, 30), simplify = F) %>%
+  lapply(., calc_sample_mean) %>%
+  bind_rows() %>%
+  mutate(sample.id = 1:n())
+
+ggplot(many.sample.stats.n30, aes(x = sample_mean)) + 
+  geom_histogram(binwidth = 0.1, col = "white") + 
+  ggtitle("Histogram of sample means where n=30") +
+  geom_vline(aes(xintercept = 1), lty = 30) + 
+  geom_vline(aes(xintercept = many.sample.stats.n30 %>% summarise(mean(sample_mean)) %>% pull), lty = 3, col = "red") +
+  theme_minimal(base_size = 15) +
+  scale_x_continuous(limits = c(0, 6))
+```
+
+
+### The Central Limit theorem summarized
+
+- Applies to both the sample mean $\bar{x}$ and the sample proportion $\hat{p}$.
+- When the sample size is large, the sampling distribution is approximately Normal,
+no matter what the underlying distribution looked like.
+- The larger the sample, the better the approximation.
+- The mean of the sampling distribution of $\bar{x}$ is $\mu$, and of $\hat{p}$ 
+is $p$, no matter the sample size. Thus these estimates are called **unbiased
+estimators**
+- The standard deviation of the sampling distribution gets smaller as $n$ increases.
+In fact, we know the formula for the standard deviation of $\bar{x}$ and $\hat{p}$
+so can calculate it for any $n$.
+- The CLT does not kick in for small values of $n$. It kicks in faster for 
+symmetric distributions than for skewed distributions.
+
+```{r, out.width="100%", fig.align='center', echo=F, warning=F, eval=F}
+# fyi, this is the code to make the image displayed on slides 
+# no need to read or understand this code.
+# actually you shouldn't pay much attention to it because it is very poorly 
+# written/does not follow best practices.
+
+set.seed(123)
+
+# don't need to understand these three lines of code. Just execute it and see
+# what appears in the Environment -- ten new objects, each with a random sample
+# from the specified Normal distribution of size 25.
+for(i in 1:10) {
+  assign(paste0("sample_", i), rnorm(n = 5, mean = 100, sd = 15))
+}
+
+# this code "column binds" ll of these samples together
+many.samples <- cbind(sample_1, sample_2, sample_3, sample_4, sample_5, sample_6,
+                      sample_7, sample_8, sample_9, sample_10)
+
+# and this code turns it into a data frame so we can use ggplot
+many.samples.2 <-as.data.frame(many.samples)
+
+sample_means <- many.samples.2 %>% summarise_all(mean)
+global_min <- many.samples.2 %>% summarise_all(min) %>% min
+global_max <- many.samples.2 %>% summarise_all(max) %>% max
+
+s1 <- ggplot(data = many.samples.2, aes(x = sample_1)) + 
+  geom_dotplot(fill = "#a6cee3", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_1, col = "#a6cee3") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 1")
+
+s2 <- ggplot(data = many.samples.2, aes(x = sample_2)) + 
+  geom_dotplot(fill = "#1f78b4", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_2, col = "#1f78b4") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 2")
+
+s3 <- ggplot(data = many.samples.2, aes(x = sample_3)) + 
+  geom_dotplot(fill = "#b2df8a", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_3, col = "#b2df8a") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 3")
+
+s4 <- ggplot(data = many.samples.2, aes(x = sample_4)) + 
+  geom_dotplot(fill = "#33a02c", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_4, col = "#33a02c") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 4")
+
+s5 <- ggplot(data = many.samples.2, aes(x = sample_5)) + 
+  geom_dotplot(fill = "#fb9a99", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_5, col = "#fb9a99") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 5")
+
+s6 <- ggplot(data = many.samples.2, aes(x = sample_6)) + 
+  geom_dotplot(fill = "#e31a1c", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_6, col = "#e31a1c") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 6")
+
+s7 <- ggplot(data = many.samples.2, aes(x = sample_7)) + 
+  geom_dotplot(fill = "#fdbf6f", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_7, col = "#fdbf6f") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 7")
+
+s8 <- ggplot(data = many.samples.2, aes(x = sample_8)) + 
+  geom_dotplot(fill = "#ff7f00", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_8, col = "#ff7f00") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 8")
+
+s9 <- ggplot(data = many.samples.2, aes(x = sample_9)) + 
+  geom_dotplot(fill = "#cab2d6", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_9, col = "#cab2d6") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 9")
+
+s10 <- ggplot(data = many.samples.2, aes(x = sample_10)) + 
+  geom_dotplot(fill = "#6a3d9a", binwidth = 1) + 
+  geom_vline(xintercept = sample_means$sample_10, col = "#6a3d9a") +
+  theme_minimal(base_size = 15) + 
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  scale_y_continuous(NULL, breaks = NULL) +
+  labs(x = "Sample 10")
+
+means <- ggplot(sample_means, aes(x = sample_1)) + 
+  geom_vline(xintercept = sample_means$sample_1, col = "#a6cee3", lwd = 1) +
+  geom_vline(xintercept = sample_means$sample_2, col = "#1f78b4", lwd = 1) +
+  geom_vline(xintercept = sample_means$sample_3, col = "#b2df8a", lwd = 1) +
+  geom_vline(xintercept = sample_means$sample_4, col = "#33a02c", lwd = 1) +
+  geom_vline(xintercept = sample_means$sample_5, col = "#fb9a99", lwd = 1) +
+  geom_vline(xintercept = sample_means$sample_6, col = "#e31a1c", lwd = 1) +
+  geom_vline(xintercept = sample_means$sample_7, col = "#fdbf6f", lwd = 1) +
+  geom_vline(xintercept = sample_means$sample_8, col = "#ff7f00", lwd = 1) +
+  geom_vline(xintercept = sample_means$sample_9, col = "#cab2d6", lwd = 1) +
+  geom_vline(xintercept = sample_means$sample_10, col = "#6a3d9a", lwd = 1) +
+  theme_minimal(base_size = 15) +
+  scale_x_continuous(limits = c(global_min, global_max)) +
+  labs(x = "Sample means")
+
+samp_dist_n5 <- s1 + s2 + s3 + s4 + s5 + s6 + s7 + s8 + s9 + s10 + means + plot_layout(ncol = 1)
+
+ggsave(plot = samp_dist_n5, filename = "sampling-dist-n5.png", width = 8, height = 15)
+```

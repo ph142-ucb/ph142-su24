@@ -1,0 +1,225 @@
+---
+title: "Population proportions"
+---
+
+<!-- libraries -->
+```{r,include=FALSE,purl=FALSE}
+library(knitr) # for include_graphics() 
+library(dplyr)
+library(forcats)
+library(readr)
+library(ggplot2)
+library(broom) 
+library(tidyr)
+library(ggplot2)
+library(tibble)
+```
+## Example using all four CI methods
+
+
+### Example applying all the methods
+
+Suppose that 500 elderly individuals suffered hip fractures, of which
+100 died within a year of their fracture. Compute the 95% CI for the proportion
+who died using:
+
+- the large sample method, 
+- the plus for method (by hand),
+- the Wilson Score method (using `prop.test`), 
+- the Clopper Pearson Exact method (using `binom.test`)
+
+### Example of large sample method to the CI for a proportion
+
+```{r}
+p.hat <- 100/500 # estimate proportion
+se <- sqrt(p.hat*(1-p.hat)/500) # standard error
+c(p.hat - 1.96*se, p.hat + 1.96*se) # CI
+```
+
+Using the large sample method, the confidence interval is 16.5% to 23.5%.
+
+Note that you could compute this by hand.
+
+### Example using the Clopper Pearson "Exact" method to the CI for a proportion
+
+```{r}
+binom.test(x = 100, n = 500, conf.level = 0.95)
+```
+
+- The 95% confidence interval using the exact binomial test is 16.6% to 23.8%.
+
+
+### Example using the Clopper Pearson "Exact" method to the CI for a proportion
+- Note that the `binom.test` function is also conducting a two-sided hypothesis 
+test (where $H_0: p_0=0.5$, unless otherwise specified). You can ignore the 
+testing-related output and focus on the CI output when using the function to 
+make a CI. 
+
+### Example using the Wilson Score method to the CI for a proportion
+
+```{r}
+prop.test(x = 100, n = 500, conf.level = 0.95)
+```
+
+- The 95% confidence interval using the Wilson Score method is 16.6% to 23.8%.
+
+### Example using the Wilson Score method to the CI for a proportion
+- Note that the `prop.test` function is also conducting a two-sided hypothesis 
+test (where $H_0: p_0=0.5$, unless otherwise specified). You can ignore the 
+testing-related output and focus on the CI output when using the function to 
+make a CI. 
+
+### Example using the plus 4 method
+
+```{r plus-four}
+p.tilde <- (100 + 2)/(500 + 4)
+se <- sqrt(p.tilde*(1-p.tilde)/504) # standard error
+c(p.tilde - 1.96*se, p.tilde + 1.96*se) # CI
+```
+
+Using the plus 4 method, the confidence interval is 16.7% to 23.7%.
+
+### Comparison of the four methods
+
+We can graphically compare the CIs :
+
+```{r, echo=F, fig.align='center', out.width="80%"}
+# students, dont worry about this code
+library(ggplot2)
+library(tibble)
+elderly_CIs <- tibble(method = c("large sample", "Exact", "Wilson", "Plus 4"),
+       lower = c(16.5, 16.6, 16.6, 16.7),
+       upper = c(23.5, 23.8, 23.8, 23.7),
+       estimate = rep(20,4))
+
+ggplot(data = elderly_CIs, 
+       aes(x = method, y = estimate)) +
+  geom_point() +
+  geom_segment(aes(xend = method, y = lower, yend = upper)) +
+  geom_hline(aes(yintercept = 0), lty = 2) +
+  labs(y = "Estimate and 95% CI", x = "") +
+  theme_minimal(base_size = 15)
+```
+
+### Summary of the confidence intervals across the methods
+
+| Method       | 95% Confidence Interval | R Function       |
+|--------------|:-----------------------:|------------|
+| Large sample | 16.5% to 23.5%          | by hand      |
+| Exact        | 16.6% to 23.8%          | `binom.test` |
+| Wilson Score* | 16.6% to 23.8%          | `prop.test`  |
+| Plus four    | 16.7% to 23.7%          | by hand      |
+
+*with continuity correction
+
+- Note that only the large sample method is symmetric around $\hat{p} = 20\%$. This is
+okay. There is no reason why we require a symmetric confidence interval. 
+
+- When the Normal approximation assumptions are satisfied, the methods give very
+similar results, as shown here.
+
+### Example 2
+
+Suppose that there were 100 elderly individuals with falls observed, and 2 died.
+
+
+
+### Example 2
+Large sample and plus four method calculations
+
+```{r large-sample}
+p.hat <- 2/100 # estimate proportion
+se <- sqrt(p.hat*(1-p.hat)/100) # standard error
+c(p.hat - 1.96*se, p.hat + 1.96*se) # CI
+```
+
+```{r plus-4-method}
+p.tilde <- (2 + 2)/(100 + 4)
+se <- sqrt(p.tilde*(1-p.tilde)/104) # standard error
+c(p.tilde - 1.96*se, p.tilde + 1.96*se) # CI
+```
+
+### Example 2
+
+```{r exact-method}
+binom.test(x = 2, n = 100, conf.level = 0.95)
+```
+
+### Example 2
+
+```{r wilson-score}
+prop.test(x = 2, n = 100, conf.level = 0.95)
+```
+
+### Example 2 summary 
+
+Here are the 95% CIs applying the four different methods:
+
+| Method       | 95% Confidence Interval | R Function       |
+|--------------|:-----------------------:|--------------|
+| Large sample | -0.74% to 4.74%          | by hand      |
+| Exact        | 0.024% to 7.04%          | `binom.test` |
+| Wilson Score* | 0.034% to 7.74%          | `prop.test`  |
+| Plus four    | 0.15% to 7.54%           | by hand      |
+
+*with continuity correction
+
+### Example 2
+
+We can graphically compare the CIs from the previous slide:
+
+```{r, echo=F, fig.align='center', out.width="80%"}
+# students, dont worry about this code
+library(ggplot2)
+library(tibble)
+elderly_CIs <- tibble(method = c("large sample", "Exact", "Wilson", "Plus 4"),
+       lower = c(-0.74, 0.024, 0.034, 0.15),
+       upper = c(4.74, 7.04, 7.74, 7.54),
+       estimate = rep(2,4))
+
+ggplot(data = elderly_CIs, 
+       aes(x = method, y = estimate)) +
+  geom_point() +
+  geom_segment(aes(xend = method, y = lower, yend = upper)) +
+  geom_hline(aes(yintercept = 0), lty = 2) +
+  labs(y = "Estimate and 95% CI", x = "") +
+  theme_minimal(base_size = 15)
+```
+
+
+### Example of a hypothesis test for a proportion
+
+Consider a SRS of 200 patients undergoing treatment to alleviate side-effects 
+from a rigorous drug regimen at a particular hospital, where 33 patients 
+experienced reduced or no side-effects. 
+
+$\hat{p}=33/200=0.165=16.5\%$
+
+Suppose that historically, the rate of patients with little or no side-effects is
+10%. Does the new treatment increase the rate? That is:
+
+$H_0: p = 0.10$ vs. $H_a: p > 0.10$
+
+### Example of a hypothesis test for a proportion
+
+Step 1: Calculate $\hat{p} = 16.5\%$ from previous slide.
+
+Step 2: Calculate the standard error of the sampling distribution for $p$ under
+the null hypothesis: $SE = \frac{\sqrt{p_0(1-p_0)}}{n} = \frac{\sqrt{0.1(1-0.1)}}{200} = 0.0212132$
+
+Step 3: Calculate the z-test for the proportion:
+
+$z = \frac{\hat{p}-p_0}{\sqrt{\frac{p_0(1-p_0)}{n}}} = \frac{0.165-0.10}{0.0212132} = 3.06413$
+
+### Example of a hypothesis test for a proportion
+Step 4: Calculate the probability of seeing a z-value of this magnitude *or larger*:
+
+```{r}
+pnorm(q = 3.06413, lower.tail = F)
+```
+
+Step 5: Evaluate the evidence against the null hypothesis. Because the p-value is 
+so small (0.1%), there is little chance of seeing a proportion equal to 16.5%
+or larger if the true proportion was actually 10%. Thus, there is evidence in 
+favor of the alternative hypothesis, that the underlying proportion is larger
+than 10%.
