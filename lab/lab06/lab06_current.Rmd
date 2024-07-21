@@ -13,7 +13,7 @@ library(rlang)
 ```
 
 ### Instructions
-* Due date: Tuesday, July 23rd at 10:00 pm PST with 2 hour grace period.
+* Due date: Tuesday, July 23rd at 10:00 pm PST with a 2 hour grace period.
 * Late penalty: 50% late penalty if submitted within 24 hours of due date, no 
 marks for assignments submitted thereafter.
 * This assignment is graded on **correct completion**, all or nothing. You must pass all public tests and submit the assignment for credit.
@@ -78,9 +78,6 @@ if (!require("MASS")){
   libary("MASS")
 }
 
-# IMPORTANT: Delete the line above after completing the lab 
-# if you have issues with your autograder in gradescoope!
-
 # Save the dataset in an object called `anorexia`
 anorexia <- MASS::anorexia
 
@@ -133,8 +130,6 @@ p8
 
 # YOUR CODE HERE
 ```
-
-_Type your answer here, replacing this text._
 
 ```{r}
 . = ottr::check("tests/p8.R")
@@ -190,8 +185,6 @@ p12
 # YOUR CODE HERE
 ```
 
-_Type your answer here, replacing this text._
-
 ```{r}
 . = ottr::check("tests/p12.R")
 ```
@@ -205,8 +198,6 @@ p13
 
 # YOUR CODE HERE
 ```
-
-_Type your answer here, replacing this text._
 
 ```{r}
 . = ottr::check("tests/p13.R")
@@ -354,3 +345,12 @@ cd; cd ph142-su24/lab/lab06; python3 turn_in.py
 5. If the submission fails, try to diagnose the issue using the error messages--if you have problems, post on Ed 
 
 The late policy will be strictly enforced, **no matter the reason**, including submission issues, so be sure to submit early enough to have time to diagnose issues if problems arise.
+
+## Submission
+
+Make sure you have run all cells in your notebook in order before running the cell below, so that all images/graphs appear in the output. The cell below will generate a zip file for you to submit. **Please save before exporting!**
+
+```{r}
+# Save your notebook first, then run this cell to export your submission.
+ottr::export("lab06_current.Rmd", pdf = TRUE)
+```
