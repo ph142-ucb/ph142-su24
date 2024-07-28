@@ -131,6 +131,8 @@ p6
 # YOUR CODE HERE
 ```
 
+_Type your answer here, replacing this text._
+
 ```{r}
 . = ottr::check("tests/p6.R")
 ```
